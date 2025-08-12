@@ -1,0 +1,15 @@
+openapi: 3.1.0
+info:
+  title: Concept GCP SRE API
+  version: 1.0.0
+paths:
+  /hello:
+    get:
+      summary: Hello World endpoint
+      responses:
+        '200':
+          description: A successful response
+          content:
+            text/plain:
+              schema:
+                type: string

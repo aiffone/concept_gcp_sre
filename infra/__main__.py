@@ -1,6 +1,10 @@
 import pulumi
 import pulumi_gcp as gcp
 
+# Read openapi.yaml content
+with open("openapi.yaml", "r") as f:
+    openapi_spec = f.read()
+
 # 1. Create VPC
 network = gcp.compute.Network(
     "private-vpc",
@@ -41,7 +45,7 @@ service = gcp.cloudrun.Service(
 # 5. API Gateway
 api = gcp.apigateway.Api(
     "concept-gcp-sre-api",
-    api_id="concept-gcp-sre-api"  # <-- Required parameter added here
+    api_id="concept-gcp-sre-api"
 )
 
 api_config = gcp.apigateway.ApiConfig(
@@ -49,12 +53,11 @@ api_config = gcp.apigateway.ApiConfig(
     api=api.name,
     openapi_documents=[{
         "document": {
-            "path": "openapi.yaml"
+            "contents": openapi_spec  # <-- Pass the actual contents here
         }
     }],
     project=pulumi.Config("gcp").require("project")
 )
-
 
 gateway = gcp.apigateway.Gateway(
     "concept-gcp-sre-gateway",
