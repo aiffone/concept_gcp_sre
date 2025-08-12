@@ -8,21 +8,21 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write  # Required for WIF
-      contents: read   # Allows actions/checkout
+      id-token: write  # Required for Workload Identity Federation
+      contents: read   # Required for actions/checkout
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
-      - name: Install Pulumi
+      - name: Install Pulumi CLI
         uses: pulumi/actions@v4
 
-      # Authenticate to GCP via Workload Identity Federation
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
@@ -31,12 +31,12 @@ jobs:
 
       - name: Install Infra Dependencies
         run: |
-          cd infra
+          cd concept_gcp_sre/infra
           pip install -r requirements.txt
 
       - name: Deploy with Pulumi
         run: |
-          cd infra
+          cd concept_gcp_sre/infra
           pulumi stack init dev || true
           pulumi up --yes
         env:
