@@ -48,10 +48,13 @@ api_config = gcp.apigateway.ApiConfig(
     "concept-gcp-sre-api-config",
     api=api.name,
     openapi_documents=[{
-        "path": "openapi.yaml"
+        "document": {
+            "path": "openapi.yaml"
+        }
     }],
     project=pulumi.Config("gcp").require("project")
 )
+
 
 gateway = gcp.apigateway.Gateway(
     "concept-gcp-sre-gateway",
