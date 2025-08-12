@@ -1,11 +1,6 @@
 import pulumi
 import pulumi_gcp as gcp
 
-import base64
-
-with open("openapi.yaml", "rb") as f:
-    openapi_b64 = base64.b64encode(f.read())
-
 # 1. Create VPC
 network = gcp.compute.Network(
     "private-vpc",
@@ -54,7 +49,8 @@ api_config = gcp.apigateway.ApiConfig(
     api=api.name,
     openapi_documents=[{
         "document": {
-            "path": "openapi.yaml"        }
+            "path": "openapi.yaml"  # Reference the file path directly
+        }
     }],
     project=pulumi.Config("gcp").require("project")
 )
