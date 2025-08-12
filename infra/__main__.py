@@ -54,7 +54,7 @@ api_config = gcp.apigateway.ApiConfig(
     api=api.name,
     openapi_documents=[{
         "document": {
-            "contents": openapi_b64.decode("utf-8")        }
+            "path": "openapi.yaml"        }
     }],
     project=pulumi.Config("gcp").require("project")
 )
