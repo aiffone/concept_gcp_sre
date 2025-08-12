@@ -39,7 +39,11 @@ service = gcp.cloudrun.Service(
 )
 
 # 5. API Gateway
-api = gcp.apigateway.Api("concept-gcp-sre-api")
+api = gcp.apigateway.Api(
+    "concept-gcp-sre-api",
+    api_id="concept-gcp-sre-api"  # <-- Required parameter added here
+)
+
 api_config = gcp.apigateway.ApiConfig(
     "concept-gcp-sre-api-config",
     api=api.name,
@@ -48,6 +52,7 @@ api_config = gcp.apigateway.ApiConfig(
     }],
     project=pulumi.Config("gcp").require("project")
 )
+
 gateway = gcp.apigateway.Gateway(
     "concept-gcp-sre-gateway",
     api=api.name,
