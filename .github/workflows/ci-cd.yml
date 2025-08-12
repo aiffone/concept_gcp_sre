@@ -31,12 +31,12 @@ jobs:
 
       - name: Install Infra Dependencies
         run: |
-          cd concept_gcp_sre/infra
+          cd infra
           pip install -r requirements.txt
 
       - name: Deploy with Pulumi
         run: |
-          cd concept_gcp_sre/infra
+          cd infra
           pulumi stack init dev || true
           pulumi up --yes
         env:
