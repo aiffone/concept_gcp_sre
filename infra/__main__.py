@@ -1,67 +1,66 @@
-import pulumi
-import pulumi_gcp as gcp
+import * as pulumi from "@pulumi/pulumi";
+import * as gcp from "@pulumi/gcp";
+import * as fs from "fs";
 
-# 1. Create VPC
-network = gcp.compute.Network(
-    "private-vpc",
-    auto_create_subnetworks=False
-)
+// Minimal VPC Network (custom subnets recommended)
+const network = new gcp.compute.Network("vpc-network", {
+    autoCreateSubnetworks: false,
+    description: "Minimal VPC network for API Gateway and Cloud Run",
+});
 
-# 2. Create private subnet with Private Google Access enabled
-subnet = gcp.compute.Subnetwork(
-    "private-subnet",
-    ip_cidr_range="10.10.0.0/24",
-    network=network.id,
-    region="us-central1",
-    private_ip_google_access=True
-)
+// Minimal Storage Bucket
+const bucket = new gcp.storage.Bucket("storage-bucket", {
+    location: "US",
+    forceDestroy: true,
+    uniformBucketLevelAccess: true,
+    publicAccessPrevention: "enforced",
+});
 
-# 3. GCS bucket
-bucket = gcp.storage.Bucket(
-    "concept-gcp-sre-bucket",
-    location="US",
-    uniform_bucket_level_access=True
-)
+// Basic Cloud Run Service (hello world)
+const cloudRunService = new gcp.cloudrun.Service("hello-world-service", {
+    location: "us-central1",
+    template: {
+        spec: {
+            containers: [{
+                image: "gcr.io/cloudrun/hello",
+            }],
+        },
+    },
+});
 
-# 4. Cloud Run service
-service = gcp.cloudrun.Service(
-    "concept-gcp-sre-service",
-    location="us-central1",
-    template=gcp.cloudrun.ServiceTemplateArgs(
-        spec=gcp.cloudrun.ServiceTemplateSpecArgs(
-            containers=[
-                gcp.cloudrun.ServiceTemplateSpecContainerArgs(
-                    image="us-docker.pkg.dev/cloudrun/container/hello"
-                )
-            ]
-        )
-    )
-)
+// Allow public access to Cloud Run
+new gcp.cloudrun.IamMember("public-access", {
+    service: cloudRunService.name,
+    location: cloudRunService.location,
+    role: "roles/run.invoker",
+    member: "allUsers",
+});
 
-# 5. API Gateway
-api = gcp.apigateway.Api(
-    "concept-gcp-sre-api",
-    api_id="concept-gcp-sre-api"
-)
+// API Gateway API
+const api = new gcp.apigateway.Api("api-gateway-api", {
+    apiId: "hello-api",
+    displayName: "Hello API",
+});
 
-api_config = gcp.apigateway.ApiConfig(
-    "concept-gcp-sre-api-config",
-    api=api.name,
-    openapi_documents=[{
-        "document": {
-            "path": "openapi.yaml"  # Reference the file path directly
-        }
+// API Gateway API Config with OpenAPI contents read inline
+const apiConfig = new gcp.apigateway.ApiConfig("concept-gcp-sre-api-config", {
+    api: api.name,
+    openapiDocuments: [{
+        document: {
+            contents: fs.readFileSync("openapi.yaml", "utf8"),
+        },
     }],
-    project=pulumi.Config("gcp").require("project")
-)
+});
 
-gateway = gcp.apigateway.Gateway(
-    "concept-gcp-sre-gateway",
-    api=api.name,
-    api_config=api_config.id,
-    location="us-central1"
-)
+// API Gateway Gateway
+const gateway = new gcp.apigateway.Gateway("api-gateway-gateway", {
+    apiConfig: apiConfig.id,
+    gatewayId: "hello-gateway",
+    displayName: "Hello Gateway",
+    region: "us-central1",
+});
 
-pulumi.export("bucket_name", bucket.url)
-pulumi.export("cloud_run_url", service.statuses[0].url)
-pulumi.export("api_gateway_url", gateway.default_hostname)
+// Export URLs
+export const bucketUrl = bucket.url;
+export const cloudRunUrl = cloudRunService.statuses.apply(s => s[0]?.url);
+export const apiGatewayUrl = gateway.defaultHostname;
