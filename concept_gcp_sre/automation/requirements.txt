@@ -1,0 +1,3 @@
+google-cloud-run
+google-cloud-monitoring
+slack_sdk

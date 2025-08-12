@@ -1,0 +1,34 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Pulumi
+        uses: pulumi/actions@v4
+
+      - name: Install Infra Dependencies
+        run: |
+          cd infra
+          pip install -r requirements.txt
+
+      - name: Deploy with Pulumi
+        run: |
+          cd infra
+          pulumi stack init dev || true
+          pulumi up --yes
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+          GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT }}
+          GOOGLE_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}

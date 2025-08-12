@@ -1,0 +1,6 @@
+name: concept-gcp-sre
+runtime:
+  name: python
+  options:
+    virtualenv: venv
+description: GCP SRE demo with Pulumi & Python automation
