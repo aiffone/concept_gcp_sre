@@ -1,6 +1,7 @@
 import pulumi
 import pulumi_gcp as gcp
 import yaml
+import base64
 
 # --------------------
 # Minimal VPC Network
@@ -59,22 +60,22 @@ spec_bucket = gcp.storage.Bucket(
 )
 
 # --------------------
-# Generate OpenAPI spec dynamically
+# Generate OpenAPI spec dynamically (base64)
 # --------------------
-def generate_openapi_contents(url):
+def generate_openapi_base64(url):
     with open("openapi.yaml", "r") as f:
         spec = yaml.safe_load(f)
-
     spec["servers"] = [{"url": url}]
-    return yaml.safe_dump(spec)
+    yaml_str = yaml.safe_dump(spec)
+    return base64.b64encode(yaml_str.encode("utf-8")).decode("utf-8")
 
-openapi_contents = cloud_run_service.statuses[0].url.apply(generate_openapi_contents)
+openapi_base64 = cloud_run_service.statuses[0].url.apply(generate_openapi_base64)
 
 # Upload spec to GCS for reference
 spec_object = gcp.storage.BucketObject(
     "openapi-spec-object",
     bucket=spec_bucket.name,
-    content=openapi_contents
+    content=cloud_run_service.statuses[0].url.apply(lambda url: yaml.safe_dump({"servers": [{"url": url}]}))
 )
 
 # --------------------
@@ -87,14 +88,14 @@ api = gcp.apigateway.Api(
 )
 
 # --------------------
-# API Gateway API Config (use contents instead of path)
+# API Gateway API Config (use base64 contents)
 # --------------------
 api_config = gcp.apigateway.ApiConfig(
     "concept-gcp-sre-api-config",
     api=api.name,
     openapi_documents=[{
         "document": {
-            "contents": openapi_contents
+            "contents": openapi_base64
         }
     }],
 )
