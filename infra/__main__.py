@@ -1,7 +1,5 @@
 import pulumi
 import pulumi_gcp as gcp
-import yaml
-import base64
 
 # --------------------
 # Minimal VPC Network
@@ -9,7 +7,7 @@ import base64
 network = gcp.compute.Network(
     "vpc-network",
     auto_create_subnetworks=False,
-    description="Minimal VPC network for API Gateway and Cloud Run",
+    description="Minimal VPC network for Cloud Run",
 )
 
 # --------------------
@@ -40,7 +38,7 @@ cloud_run_service = gcp.cloudrun.Service(
     ),
 )
 
-# Allow public access
+# Allow public access to Cloud Run
 gcp.cloudrun.IamMember(
     "public-access",
     service=cloud_run_service.name,
@@ -50,74 +48,7 @@ gcp.cloudrun.IamMember(
 )
 
 # --------------------
-# Bucket for OpenAPI spec
-# --------------------
-spec_bucket = gcp.storage.Bucket(
-    "openapi-spec-bucket",
-    location="US",
-    uniform_bucket_level_access=True,
-    force_destroy=True,
-)
-
-# --------------------
-# Generate OpenAPI spec dynamically (base64)
-# --------------------
-def generate_openapi_base64(url):
-    with open("openapi.yaml", "r") as f:
-        spec = yaml.safe_load(f)
-    spec["servers"] = [{"url": url}]
-    yaml_str = yaml.safe_dump(spec)
-    return base64.b64encode(yaml_str.encode("utf-8")).decode("utf-8")
-
-openapi_base64 = cloud_run_service.statuses[0].url.apply(generate_openapi_base64)
-
-# Upload spec to GCS for reference
-spec_object = gcp.storage.BucketObject(
-    "openapi-spec-object",
-    bucket=spec_bucket.name,
-    content=cloud_run_service.statuses[0].url.apply(lambda url: yaml.safe_dump({"servers": [{"url": url}]}))
-)
-
-# --------------------
-# API Gateway API
-# --------------------
-api = gcp.apigateway.Api(
-    "api-gateway-api",
-    api_id="hello-api",
-    display_name="Hello API",
-)
-
-# --------------------
-# API Gateway API Config (use base64 contents)
-# --------------------
-api_config = gcp.apigateway.ApiConfig(
-    "concept-gcp-sre-api-config",
-    api=api.name,
-    openapi_documents=[{
-        "document": {
-            "contents": openapi_base64
-        }
-    }],
-)
-
-# --------------------
-# API Gateway Gateway
-# --------------------
-gateway = gcp.apigateway.Gateway(
-    "api-gateway-gateway",
-    api_config=api_config.id,
-    gateway_id="hello-gateway",
-    display_name="Hello Gateway",
-    region="us-central1",
-)
-
-# --------------------
 # Outputs
 # --------------------
 pulumi.export("bucket_url", bucket.url)
 pulumi.export("cloud_run_url", cloud_run_service.statuses[0].url)
-pulumi.export("api_gateway_url", gateway.default_hostname)
-pulumi.export(
-    "openapi_spec_gcs_uri",
-    pulumi.Output.concat("gs://", spec_bucket.name, "/", spec_object.name)
-)
