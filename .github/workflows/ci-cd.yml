@@ -27,7 +27,7 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT_EMAIL }}
 
       - name: Install Infra Dependencies
         run: |
@@ -38,9 +38,10 @@ jobs:
         run: |
           cd infra
           pulumi stack init dev || true
-          pulumi stack select dev || pulumi stack init dev
-          pulumi config set gcp:project ${{ secrets.GCP_PROJECT }} --stack dev
+          pulumi stack select dev 
+          pulumi config set gcp:project ${{ vars.GCP_PROJECT }} --stack dev
+          pulumi config set gcp:region us-central1 --stack dev
           pulumi up --yes
         env:
           PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
-          GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT }}
+          GOOGLE_CLOUD_PROJECT: ${{ vars.GCP_PROJECT }}
