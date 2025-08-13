@@ -39,7 +39,7 @@ cloud_run_service = gcp.cloudrun.Service(
     ),
 )
 
-# Allow public access to Cloud Run
+# Allow public access
 gcp.cloudrun.IamMember(
     "public-access",
     service=cloud_run_service.name,
@@ -49,7 +49,7 @@ gcp.cloudrun.IamMember(
 )
 
 # --------------------
-# Bucket for OpenAPI spec
+# Bucket for OpenAPI spec (optional)
 # --------------------
 spec_bucket = gcp.storage.Bucket(
     "openapi-spec-bucket",
@@ -61,27 +61,21 @@ spec_bucket = gcp.storage.Bucket(
 # --------------------
 # Generate OpenAPI spec dynamically
 # --------------------
-def write_openapi_with_url(url):
+def generate_openapi_contents(url):
     with open("openapi.yaml", "r") as f:
         spec = yaml.safe_load(f)
 
-    # Update the 'servers' section with the Cloud Run URL
     spec["servers"] = [{"url": url}]
+    return yaml.safe_dump(spec)
 
-    out_path = "openapi.generated.yaml"
-    with open(out_path, "w") as f:
-        yaml.safe_dump(spec, f)
+# Pulumi Output that contains YAML contents
+openapi_contents = cloud_run_service.statuses[0].url.apply(generate_openapi_contents)
 
-    return out_path
-
-# Create an Output that writes the updated spec
-openapi_file_path = cloud_run_service.statuses[0].url.apply(write_openapi_with_url)
-
-# Upload updated OpenAPI spec to GCS (optional)
+# Upload spec to GCS for reference
 spec_object = gcp.storage.BucketObject(
     "openapi-spec-object",
     bucket=spec_bucket.name,
-    source=openapi_file_path.apply(lambda path: pulumi.FileAsset(path)),
+    content=openapi_contents
 )
 
 # --------------------
@@ -94,14 +88,14 @@ api = gcp.apigateway.Api(
 )
 
 # --------------------
-# API Gateway API Config (use local path for Pulumi)
+# API Gateway API Config (now using `contents`)
 # --------------------
 api_config = gcp.apigateway.ApiConfig(
     "concept-gcp-sre-api-config",
     api=api.name,
     openapi_documents=[{
         "document": {
-            "path": openapi_file_path  # local file path Pulumi can read
+            "contents": openapi_contents
         }
     }],
 )
@@ -118,12 +112,10 @@ gateway = gcp.apigateway.Gateway(
 )
 
 # --------------------
-# Export URLs
+# Outputs
 # --------------------
 pulumi.export("bucket_url", bucket.url)
 pulumi.export("cloud_run_url", cloud_run_service.statuses[0].url)
 pulumi.export("api_gateway_url", gateway.default_hostname)
-pulumi.export(
-    "openapi_spec_gcs_uri",
-    pulumi.Output.concat("gs://", spec_bucket.name, "/", spec_object.name)
-)
+pulumi.export("openapi_spec_gcs_uri",
+              pulumi.Output.concat("gs://", spec_bucket.name, "/", spec_object.name))
