@@ -44,6 +44,7 @@ jobs:
           pulumi stack select dev 
           pulumi config set gcp:project ${{ vars.GCP_PROJECT }} --stack dev
           pulumi config set gcp:region us-central1 --stack dev
+          pulumi preview
           pulumi up --yes
         env:
           PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
