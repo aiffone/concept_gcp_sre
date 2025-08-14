@@ -1,7 +1,7 @@
 from google.cloud import monitoring_v3
 import datetime
 
-PROJECT_ID = "your-gcp-project"
+PROJECT_ID = "concepts-459009"
 METRIC_TYPE = "custom.googleapis.com/availability"
 
 def generate_slo_report():
