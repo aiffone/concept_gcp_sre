@@ -51,4 +51,4 @@ gcp.cloudrun.IamMember(
 # Outputs
 # --------------------
 pulumi.export("bucket_url", bucket.url)
-pulumi.export("cloud_run_url", cloud_run_service.statuses[0].url)
+pulumi.export("cloud_run_url", cloud_run_service.statuses.url)
