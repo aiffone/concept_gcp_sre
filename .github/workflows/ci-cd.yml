@@ -44,7 +44,8 @@ jobs:
           pulumi stack select dev 
           pulumi config set gcp:project ${{ vars.GCP_PROJECT }} --stack dev
           pulumi config set gcp:region us-central1 --stack dev
-          pip install -r automation/requirements.txt
+          ls
+          pwd
           pulumi preview
           pulumi up --yes
         env:
