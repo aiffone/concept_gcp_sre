@@ -34,6 +34,9 @@ jobs:
           cd infra
           pip install -r requirements.txt
 
+      - name: Install dependencies
+        run: pip install -r automation/requirements.txt
+
       - name: Deploy with Pulumi
         run: |
           cd infra
