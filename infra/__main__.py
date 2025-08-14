@@ -51,4 +51,11 @@ gcp.cloudrun.IamMember(
 # Outputs
 # --------------------
 pulumi.export("bucket_url", bucket.url)
-pulumi.export("cloud_run_url", cloud_run_service.statuses.url)
+
+# Fix: Use apply to safely access the URL of the first status
+pulumi.export(
+    "cloud_run_url",
+    cloud_run_service.statuses.apply(
+        lambda statuses: statuses[0].url if statuses and len(statuses) > 0 else None
+    )
+)
